@@ -56,9 +56,12 @@ def _valid_prefix(prefix):
     if re.match("^[a-z0-9\\._]+$", prefix) is None:
         raise InvalidNameException("Watchdog names must match [a-z0-9\\._]+")
 
+def make_body(token, name):
+    return token + name.encode()
+
 def kick(name, timeout=300):
     _valid_prefix(name)
-    body=_wd_token+name
+    body = make_body(_wd_token, name)
     hmac=hashlib.sha256(body).hexdigest()
     r = _do_request("kick/%s?timeout=%d&hmac=%s" % (name, timeout, hmac))
     if r.status_code != 200:
@@ -66,7 +69,7 @@ def kick(name, timeout=300):
 
 def fault(name, reason="unspecified"):
     _valid_prefix(name)
-    body=_wd_token+name
+    body = make_body(_wd_token, name)
     hmac=hashlib.sha256(body).hexdigest()
     r = _do_request("fault/%s?reason=%s&hmac=%s" % (name, urllib.quote(reason), hmac))
     if r.status_code != 200:
@@ -74,7 +77,7 @@ def fault(name, reason="unspecified"):
 
 def retire(prefix):
     _valid_prefix(prefix)
-    body=_wd_token+prefix
+    body = make_body(_wd_token, prefix)
     hmac=hashlib.sha256(body).hexdigest()
     r = _do_request("retire/%s?hmac=%s" % (prefix, hmac))
     if r.status_code != 200:
@@ -82,7 +85,7 @@ def retire(prefix):
 
 def status(prefix):
     _valid_prefix(prefix)
-    body=_wd_token+prefix
+    body = make_body(_wd_token, prefix)
     hmac=hashlib.sha256(body).hexdigest()
     r = _do_request("status/%s?hmac=%s&header=0" % (prefix, hmac))
     if r.status_code != 200:
@@ -90,12 +93,12 @@ def status(prefix):
     rv = []
     for l in r.text.splitlines():
         parts = l.split("\t")
-        rv.append({"state":parts[0], "name":parts[1],"expire":parts[2], "reason":parts[3]})
+        rv.append({"state":parts[0], "name":parts[1],"expire":parts[2], "cumdtime":int(parts[3]), "reason":parts[4]})
     return rv
 
 def auth(prefix):
     _valid_prefix(prefix)
-    body=_wd_token+prefix
+    body = make_body(_wd_token, prefix)
     hmac=hashlib.sha256(body).hexdigest()
     r = _do_request("auth/%s?hmac=%s" % (prefix, hmac))
     if r.status_code != 200:
